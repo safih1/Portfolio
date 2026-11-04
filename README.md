@@ -100,9 +100,13 @@ Edit the service cards in `index.html` to update:
 
 ```
 portfolio/
-├── index.html      # Main HTML file
+├── index.html      # Main portfolio page
+├── portfolio.html  # Alternate long-form portfolio page
 ├── styles.css      # All styles
 ├── script.js       # JavaScript interactions
+├── og-image.png    # Social preview image (1200×630)
+├── portfolio.pdf   # Printable version of portfolio.html
+├── PORTFOLIO.md    # Markdown version of the portfolio copy
 └── README.md       # This file
 ```
 
@@ -114,7 +118,7 @@ portfolio/
 - ✅ Professional design (blue theme)
 - ✅ Smooth animations
 - ✅ Mobile menu
-- ✅ All links go to Fiverr
+- ✅ Projects section linking the working apps in this repo
 
 ## Performance
 
