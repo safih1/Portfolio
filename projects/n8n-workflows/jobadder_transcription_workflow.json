@@ -1,0 +1,131 @@
+{
+  "name": "JobAdder Candidate Transcription",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_URL",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -740,
+        1200
+      ],
+      "id": "36205da7-dc83-4494-af10-d87cb67a3116",
+      "name": "Read Call Log from Sheets"
+    },
+    {
+      "parameters": {
+        "url": "https://api.jobadder.com/v2/folders/YOUR_FOLDER_ID/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -740,
+        1420
+      ],
+      "id": "8c60b8a9-586c-4f9a-ae81-24139c6a8149",
+      "name": "Get Candidates from Folder"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get call logs and candidates\nconst callLogs = $('Read Call Log from Sheets').all();\nconst candidatesData = $('Get Candidates from Folder').first().json.candidates || [];\n\n// Helper function to normalize phone number (remove spaces, dashes, +, etc.)\nfunction normalizePhone(phone) {\n  if (!phone) return '';\n  return phone.toString().replace(/[\\s\\-\\+\\(\\)]/g, '').slice(-9);\n}\n\n// Create a map of phone (normalized) to transcript\nconst transcriptMap = {};\n\nfor (const call of callLogs) {\n  // Get phone from call log\n  const phone = call.json.phone || call.json.from || call.json.to || '';\n  const transcript = call.json.transcript;\n  \n  if (phone && transcript) {\n    const normalizedPhone = normalizePhone(phone);\n    if (normalizedPhone) {\n      transcriptMap[normalizedPhone] = transcript;\n    }\n  }\n}\n\n// Match candidates with transcriptions by mobile\nconst results = [];\n\nfor (const candidate of candidatesData) {\n  // Get mobile from candidate\n  const candidateMobile = candidate.mobile || '';\n  \n  const normalizedPhone = normalizePhone(candidateMobile);\n  \n  // Find matching transcript\n  const transcription = transcriptMap[normalizedPhone] || '';\n  \n  // Only include candidates that have a matching transcript\n  if (transcription) {\n    results.push({\n      json: {\n        candidateId: candidate.candidateId,\n        firstName: candidate.firstName,\n        lastName: candidate.lastName,\n        email: candidate.email,\n        mobile: candidateMobile,\n        transcript: transcription\n      }\n    });\n  }\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -300,
+        1320
+      ],
+      "id": "aadc3e6a-4a52-40e0-8602-f0d53da245f0",
+      "name": "Match by Phone & Get Transcript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.jobadder.com/v2/candidates/{{ $json.candidateId }}/notes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "noteType",
+              "value": "Contact call"
+            },
+            {
+              "name": "note",
+              "value": "={{ $json.transcript }}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -60,
+        1320
+      ],
+      "id": "b54af980-b1a0-4bae-8401-b248d5d958d2",
+      "name": "Add Note to Candidate"
+    }
+  ],
+  "connections": {
+    "Read Call Log from Sheets": {
+      "main": [
+        [
+          {
+            "node": "Match by Phone & Get Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Candidates from Folder": {
+      "main": [
+        [
+          {
+            "node": "Match by Phone & Get Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match by Phone & Get Transcript": {
+      "main": [
+        [
+          {
+            "node": "Update Candidate in JobAdder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}

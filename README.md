@@ -1,137 +1,119 @@
-# Safi - AI Automation Expert Portfolio
+# Portfolio + Client Acquisition Toolkit
 
-A professional portfolio website showcasing AI automation, Voice AI, CRM setup, n8n workflows, and web development services.
+Live portfolio: <https://portfolio-jade-nine-ctarhqtjpz.vercel.app>
 
-## Live Preview
+This repository contains the static portfolio site at the root and the source code for the apps it showcases under `projects/`.
 
-Open `index.html` in your browser to see the website.
+## Projects
 
-## Deploy to Vercel (Recommended - FREE)
+| Project | What it does | Stack |
+|---|---|---|
+| [`projects/chatbot`](projects/chatbot) | Streaming Groq chat app with saved conversations, system prompt, and temperature controls | Flask, Groq, vanilla JS |
+| [`projects/lead-hunter`](projects/lead-hunter) | Local CRM: find leads, audit websites, score fit, draft outreach, analyze replies, chat about a lead | Flask, Groq, SQLite |
+| [`projects/django-portal`](projects/django-portal) | Client portal: projects, progress tracking, invoices, dashboard, and admin | Django, SQLite |
+| [`projects/n8n-workflows`](projects/n8n-workflows) | Importable n8n automation workflows | n8n JSON |
 
-### Option 1: Quick Deploy (2 minutes)
+The portfolio cards link to each project's source and setup guide. The Flask apps are designed to run locally; the Django portal has a Render blueprint for a public demo.
 
-1. Go to [vercel.com](https://vercel.com)
-2. Sign up with GitHub (free)
-3. Click "Add New" → "Project"
-4. Click "Import Git Repository" OR upload the `portfolio` folder
-5. Click "Deploy"
-6. Your site is live at `your-project.vercel.app`
-
-### Option 2: Using Vercel CLI
+## Run locally
 
 ```bash
-# Install Vercel CLI
-npm install -g vercel
+git clone https://github.com/safih1/Portfolio.git
+cd Portfolio
 
-# Navigate to portfolio folder
-cd portfolio
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
 
-# Deploy
-vercel
-
-# Follow prompts, then get your URL
+pip install -r requirements.txt
+copy .env.example .env   # macOS/Linux: cp .env.example .env
 ```
 
-## Deploy to Netlify (Alternative - FREE)
+Add at least `GROQ_API_KEY` to `.env` for the chatbot and Lead Hunter.
 
-1. Go to [netlify.com](https://netlify.com)
-2. Sign up (free)
-3. Drag and drop the `portfolio` folder to deploy
-4. Your site is live instantly
+### Chatbot
 
-## Deploy to GitHub Pages (FREE)
-
-1. Create a new GitHub repository
-2. Upload all files from `portfolio` folder
-3. Go to Settings → Pages
-4. Select "main" branch and "/root" folder
-5. Save - your site is at `username.github.io/repo-name`
-
-## Connect Your Domain
-
-### If you buy a domain (e.g., safiautomation.com):
-
-**On Vercel:**
-1. Go to your project settings
-2. Click "Domains"
-3. Add your custom domain
-4. Update DNS records as instructed
-
-**On Netlify:**
-1. Go to Site settings → Domain management
-2. Add custom domain
-3. Update DNS records
-
-### Recommended Domain Registrars
-- [Namecheap](https://namecheap.com) - $8-12/year
-- [Google Domains](https://domains.google) - $12/year
-- [Cloudflare](https://cloudflare.com) - At cost
-
-## Customize the Website
-
-### Change Your Name
-Edit `index.html`:
-- Search for "Safi" and replace with your name
-- Update the title tag
-- Update footer copyright
-
-### Change Fiverr Link
-Search for `https://www.fiverr.com/safi_automateai` and replace with your Fiverr profile URL.
-
-### Change Colors
-Edit `styles.css` - the `:root` section has all colors:
-```css
---primary-500: #3b82f6;  /* Main blue */
---primary-600: #2563eb;  /* Darker blue */
+```bash
+cd projects/chatbot
+python app.py
 ```
 
-### Change Services/Pricing
-Edit the service cards in `index.html` to update:
-- Service descriptions
-- Features
-- Pricing
+Open <http://127.0.0.1:5000>.
 
-### Add Your Photo
-1. Add your photo to the portfolio folder
-2. Add an `<img>` tag in the About section
-3. Or replace the tech stack visual with your photo
+### Lead Hunter
 
-## File Structure
-
-```
-portfolio/
-├── index.html      # Main portfolio page
-├── portfolio.html  # Alternate long-form portfolio page
-├── styles.css      # All styles
-├── script.js       # JavaScript interactions
-├── og-image.png    # Social preview image (1200×630)
-├── portfolio.pdf   # Printable version of portfolio.html
-├── PORTFOLIO.md    # Markdown version of the portfolio copy
-└── README.md       # This file
+```bash
+cd projects/lead-hunter
+python cli.py init-db
+python cli.py demo
+python app.py
 ```
 
-## Features
+Open <http://127.0.0.1:5001>.
 
-- ✅ Fully responsive (mobile, tablet, desktop)
-- ✅ Fast loading (no frameworks, pure HTML/CSS/JS)
-- ✅ SEO optimized (meta tags, semantic HTML)
-- ✅ Professional design (blue theme)
-- ✅ Smooth animations
-- ✅ Mobile menu
-- ✅ Projects section linking the working apps in this repo
+### Django Client Portal
 
-## Performance
+```bash
+cd projects/django-portal
+python manage.py migrate
+python manage.py seed_demo
+python manage.py runserver
+```
 
-- Page load: < 1 second
-- No dependencies
-- Lighthouse score: 95+
-- Mobile-friendly: Yes
+Open <http://127.0.0.1:8000>. Create an admin user with `python manage.py createsuperuser`.
 
-## Need Help?
+### n8n workflows
 
-If you want to customize further, just ask! I can help with:
-- Adding new sections
-- Changing the design
-- Adding contact forms
-- Analytics integration
-- Custom features
+Import the JSON files from `projects/n8n-workflows` into n8n: **Workflows → Import from file**, add credentials, review the trigger, then activate.
+
+## Deploy
+
+**Portfolio:** Vercel serves the repository root as a static site. There is no build step. Push to `main` and Vercel redeploys automatically.
+
+**Django portal:** the root [`render.yaml`](render.yaml) blueprint deploys `projects/django-portal` with Gunicorn and WhiteNoise.
+
+1. In Render, choose **New → Blueprint**.
+2. Select this repository.
+3. Apply the blueprint and wait for the build.
+4. Open the generated `https://<service>.onrender.com` URL.
+
+Render runs migrations and seeds the demo data on each build. The free tier sleeps after inactivity and uses an ephemeral filesystem, so SQLite records reset on deploy or restart. Use a Render disk or Postgres for persistent data. See the [portal README](projects/django-portal/README.md#deploy-to-render).
+
+**Flask apps:** intended for local use. Add authentication, a production WSGI server, and rate limits before exposing them publicly.
+
+## Tests
+
+```bash
+cd projects/chatbot && python -m pytest tests -q
+cd projects/lead-hunter && python -m pytest tests -q
+cd projects/django-portal && python manage.py test
+```
+
+## Layout
+
+```text
+.
+├── index.html, portfolio.html, styles.css, script.js   # Live portfolio
+├── portfolio.pdf, og-image.png, PORTFOLIO.md
+├── projects/
+│   ├── chatbot/              # Groq streaming chat app
+│   ├── lead-hunter/          # Local CRM + prospecting tools
+│   ├── django-portal/        # Django client portal
+│   └── n8n-workflows/        # Importable automation workflows
+├── render.yaml               # Render blueprint for Django
+├── requirements.txt
+├── .env.example
+└── README.md
+```
+
+## Security
+
+- Never commit `.env`, API keys, tokens, or local databases.
+- Keep the Flask apps on `127.0.0.1` unless you add authentication.
+- Use official APIs and follow each platform's terms.
+
+## License
+
+MIT

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A fast, streaming AI chat interface powered by Groq." />
+  <title>Groq Chat</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2335d39a'/%3E%3Ctext x='50' y='68' font-size='56' font-family='Arial' font-weight='700' text-anchor='middle' fill='white'%3EG%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <div class="app" id="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">G</div>
+        <div>
+          <strong>Groq Chat</strong>
+          <span>Streaming AI assistant</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary new-chat" id="new-chat" type="button">+ New chat</button>
+
+      <div class="sidebar-label">Conversations</div>
+      <nav class="conversation-list" id="conversation-list" aria-label="Conversations"></nav>
+
+      <div class="sidebar-footer">
+        <div class="status" id="api-status" title="API status">
+          <span class="dot"></span><span id="api-status-text">Checking API…</span>
+        </div>
+        <button class="btn btn-ghost" id="open-settings" type="button">Settings</button>
+      </div>
+    </aside>
+
+    <main class="chat">
+      <header class="chat-header">
+        <button class="icon-btn menu-btn" id="menu-toggle" type="button" aria-label="Toggle menu">☰</button>
+        <div class="chat-heading">
+          <h1 id="chat-title">New conversation</h1>
+          <p id="chat-subtitle">Powered by Groq</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-ghost" id="export-chat" type="button">Export</button>
+          <button class="btn btn-ghost danger" id="delete-chat" type="button">Delete</button>
+        </div>
+      </header>
+
+      <section class="messages" id="messages" aria-live="polite">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-glow"></div>
+          <h2>What can I help you with?</h2>
+          <p>Ask anything. Replies stream in real time and stay in your browser.</p>
+          <div class="suggestions">
+            <button type="button" data-prompt="Write a cold outreach message for a dental clinic that misses calls after hours.">Write outreach copy</button>
+            <button type="button" data-prompt="Turn these notes into a clear client proposal outline: automation for a small e-commerce brand.">Draft a proposal</button>
+            <button type="button" data-prompt="Explain n8n vs Zapier for a small business owner in simple terms.">Explain a tool</button>
+            <button type="button" data-prompt="Review this idea and list the risks: an AI receptionist for local service businesses.">Pressure-test an idea</button>
+          </div>
+        </div>
+      </section>
+
+      <form class="composer" id="composer">
+        <div class="composer-box">
+          <textarea id="input" rows="1" placeholder="Message Groq…" autocomplete="off" required></textarea>
+          <button class="send-btn" id="send" type="submit" aria-label="Send message">
+            <span class="send-label">Send</span>
+          </button>
+          <button class="stop-btn" id="stop" type="button" hidden>Stop</button>
+        </div>
+        <p class="hint">Enter to send · Shift + Enter for a new line · Your history stays on this device.</p>
+      </form>
+    </main>
+  </div>
+
+  <dialog id="settings-dialog" class="dialog">
+    <form method="dialog" class="dialog-card" id="settings-form">
+      <div class="dialog-head">
+        <h2>Chat settings</h2>
+        <button class="icon-btn" value="cancel" aria-label="Close">×</button>
+      </div>
+      <label class="field">
+        <span>System prompt</span>
+        <textarea id="system-prompt" rows="6" placeholder="You are a helpful assistant…"></textarea>
+        <small>Sets the assistant's role and tone for new messages.</small>
+      </label>
+      <label class="field">
+        <span>Temperature <output id="temperature-value">0.7</output></span>
+        <input id="temperature" type="range" min="0" max="1.5" step="0.1" value="0.7" />
+        <small>Lower is focused, higher is more creative.</small>
+      </label>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" value="cancel" type="button" id="reset-settings">Reset</button>
+        <button class="btn btn-primary" value="save" type="submit" id="save-settings">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

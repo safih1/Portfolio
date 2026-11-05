@@ -1,0 +1,7 @@
+# Install every runnable project
+-r projects/chatbot/requirements.txt
+-r projects/lead-hunter/requirements.txt
+-r projects/django-portal/requirements.txt
+
+# Development
+pytest>=8.0

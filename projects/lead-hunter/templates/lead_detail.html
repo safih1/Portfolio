@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block title %}{{ lead.name }} · Lead Hunter{% endblock %}
+{% block page_title %}{{ lead.name }}{% endblock %}
+{% block page_sub %}{{ lead.company or "No company" }}{% if lead.location %} · {{ lead.location }}{% endif %}{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('leads') }}">← Leads</a>
+  {% if lead.website %}<a class="btn btn-ghost" href="{{ lead.website }}" target="_blank" rel="noopener">Website ↗</a>{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="layout-2">
+  <div class="stack">
+    <section class="panel lead-hero">
+      <div class="avatar-lg">{{ lead.name|initials }}</div>
+      <div class="lead-hero-main">
+        <div class="hero-row">
+          <span class="badge status-{{ lead.status }}">{{ lead.status }}</span>
+          <span class="badge platform">{{ lead.platform }}</span>
+          {% if lead.score is not none %}
+            <span class="score {{ lead.score|score_class }}">{{ lead.score }} / 100</span>
+          {% endif %}
+          <span class="muted small">Updated {{ lead.updated_at|timeago }}</span>
+        </div>
+        <p class="hero-copy">{{ lead.category or "Uncategorised lead" }}{% if lead.source %} · source: {{ lead.source }}{% endif %}</p>
+        <div class="hero-actions">
+          <form method="post" action="{{ url_for('lead_update', lead_id=lead.id) }}" class="inline-form">
+            <select name="status" aria-label="Status">
+              {% for item in ['new','contacted','replied','qualified','won','lost'] %}
+                <option value="{{ item }}" {{ 'selected' if lead.status == item }}>{{ item }}</option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-ghost" type="submit">Update status</button>
+          </form>
+          <form method="post" action="{{ url_for('lead_score', lead_id=lead.id) }}">
+            <button class="btn btn-primary" type="submit" {{ 'disabled' if not ai_ready }}>Score with AI</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Outreach studio</h2>
+          <p>Generate a short, specific first message. Edit before sending.</p>
+        </div>
+        <span class="badge {{ 'ai-on' if ai_ready else 'ai-off' }}">{{ 'Groq AI' if ai_ready else 'Template mode' }}</span>
+      </div>
+
+      <form class="form-grid" method="post" action="{{ url_for('lead_outreach', lead_id=lead.id) }}">
+        <label class="field"><span>Channel</span>
+          <select name="channel">
+            {% for channel in channels %}
+              <option value="{{ channel }}" {{ 'selected' if draft and draft.channel == channel }}>{{ channel.replace('_', ' ') }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="field"><span>Service</span>
+          <select name="service">
+            {% for service in services %}
+              <option value="{{ service }}" {{ 'selected' if draft and draft.service == service }}>{{ service }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="field"><span>Tone</span>
+          <select name="tone">
+            {% for tone in tones %}
+              <option value="{{ tone }}" {{ 'selected' if draft and draft.tone == tone }}>{{ tone }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Generate draft</button>
+        </div>
+      </form>
+
+      {% if draft %}
+        <div class="draft-box">
+          <div class="draft-head">
+            <strong>{{ 'AI draft' if draft.used_ai else 'Template draft' }}</strong>
+            <button class="btn btn-ghost small-btn" type="button" data-copy-target="draft-message">Copy message</button>
+          </div>
+          {% if draft.subject %}<div class="draft-subject">Subject: {{ draft.subject }}</div>{% endif %}
+          <pre class="draft" id="draft-message">{{ draft.message }}</pre>
+          {% if draft.why %}<p class="muted small"><strong>Why this angle:</strong> {{ draft.why }}</p>{% endif %}
+          <form method="post" action="{{ url_for('lead_update', lead_id=lead.id) }}">
+            <input type="hidden" name="status" value="contacted" />
+            <button class="btn btn-ghost small-btn" type="submit">Mark as contacted</button>
+          </form>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Reply analyzer</h2>
+          <p>Paste what they said. Groq summarises it and suggests the next step.</p>
+        </div>
+      </div>
+      <form method="post" action="{{ url_for('lead_reply', lead_id=lead.id) }}">
+        <label class="field">
+          <span>Their reply</span>
+          <textarea name="reply" rows="4" placeholder="Paste the email, DM, or call notes here…" required></textarea>
+        </label>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit" {{ 'disabled' if not ai_ready }}>Analyze reply</button>
+          {% if not ai_ready %}<span class="muted small">Add GROQ_API_KEY to enable.</span>{% endif %}
+        </div>
+      </form>
+
+      {% if reply_analysis %}
+        <div class="analysis">
+          <div class="analysis-row"><span class="muted">Intent</span><span class="badge">{{ reply_analysis.intent }}</span></div>
+          <p>{{ reply_analysis.summary }}</p>
+          <p><strong>Next step:</strong> {{ reply_analysis.next_step }}</p>
+          <div class="draft-head"><strong>Suggested reply</strong><button class="btn btn-ghost small-btn" type="button" data-copy-target="suggested-reply">Copy</button></div>
+          <pre class="draft" id="suggested-reply">{{ reply_analysis.suggested_reply }}</pre>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Activity log</h2>
+          <p>Every note, draft, audit, and reply in one timeline.</p>
+        </div>
+      </div>
+      {% if activities %}
+        <ol class="timeline">
+          {% for item in activities %}
+            <li>
+              <span class="timeline-dot"></span>
+              <div class="timeline-body">
+                <div class="timeline-head">
+                  <span class="badge">{{ item.kind.replace('_', ' ') }}</span>
+                  {% if item.channel %}<span class="muted small">{{ item.channel }}</span>{% endif %}
+                  <span class="muted small">{{ item.created_at|timeago }}</span>
+                </div>
+                <pre class="activity-content">{{ item.content }}</pre>
+              </div>
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="muted small">No activity yet. Generate a draft or log a note to start.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="panel">
+      <div class="panel-head"><div><h2>Contact</h2></div></div>
+      <ul class="detail-list">
+        <li><span>Email</span>{% if lead.email %}<a href="mailto:{{ lead.email }}">{{ lead.email }}</a>{% else %}<em>—</em>{% endif %}</li>
+        <li><span>Phone</span>{% if lead.phone %}<a href="tel:{{ lead.phone }}">{{ lead.phone }}</a>{% else %}<em>—</em>{% endif %}</li>
+        <li><span>Website</span>{% if lead.website %}<a href="{{ lead.website }}" target="_blank" rel="noopener">{{ lead.website }}</a>{% else %}<em>—</em>{% endif %}</li>
+        <li><span>Profile</span>{% if lead.profile_url %}<a href="{{ lead.profile_url }}" target="_blank" rel="noopener">Open profile</a>{% else %}<em>—</em>{% endif %}</li>
+        <li><span>Location</span>{{ lead.location or "—" }}</li>
+        <li><span>Platform</span>{{ lead.platform }}</li>
+        <li><span>Added</span>{{ lead.created_at|timeago }}</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>Qualification</h2></div></div>
+      {% if lead.score is not none %}
+        <div class="score-block">
+          <span class="score-ring {{ lead.score|score_class }}">{{ lead.score }}</span>
+          <div><strong>{{ lead.score|score_class|capitalize }} lead</strong><p class="muted small">{{ lead.score_reason }}</p></div>
+        </div>
+        {% if lead.angle %}<p class="small"><strong>Angle:</strong> {{ lead.angle }}</p>{% endif %}
+      {% else %}
+        <p class="muted small">Not scored yet. Run AI scoring to rank this lead and get an outreach angle.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel chat-panel" id="lead-chat" data-lead-id="{{ lead.id }}">
+      <div class="panel-head">
+        <div>
+          <h2>Lead assistant</h2>
+          <p>Ask Groq about this lead before you reach out.</p>
+        </div>
+        <span class="badge {{ 'ai-on' if ai_ready else 'ai-off' }}">{{ 'Groq' if ai_ready else 'Offline' }}</span>
+      </div>
+
+      <div class="chat-log" id="chat-log" aria-live="polite">
+        <div class="chat-bubble assistant">Ask me about {{ lead.name }} — their fit, the best angle, or how to reply.</div>
+      </div>
+
+      {% if ai_ready %}
+        <div class="chat-suggestions">
+          <button class="chat-chip" type="button" data-chat-prompt="Why is this lead a good fit?">Why this fit?</button>
+          <button class="chat-chip" type="button" data-chat-prompt="What pain point should I lead with?">Best angle</button>
+          <button class="chat-chip" type="button" data-chat-prompt="Draft a short, specific first message for this lead.">Draft message</button>
+        </div>
+        <form class="chat-form" id="chat-form">
+          <textarea id="chat-input" rows="2" maxlength="2000" placeholder="Ask about this lead…" required></textarea>
+          <button class="btn btn-primary" id="chat-send" type="submit">Send</button>
+        </form>
+      {% else %}
+        <p class="muted small">Add GROQ_API_KEY to .env to enable the lead assistant.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>Website audit</h2><p>Find email, phone, socials, and gaps.</p></div></div>
+      <form method="post" action="{{ url_for('lead_audit', lead_id=lead.id) }}">
+        <label class="field"><span>URL</span><input name="url" value="{{ lead.website or '' }}" placeholder="https://business.com" required /></label>
+        <button class="btn btn-ghost full" type="submit">Run audit</button>
+      </form>
+      {% if audit %}
+        <ul class="detail-list compact">
+          <li><span>Emails</span>{{ audit.emails|join(', ') or "None found" }}</li>
+          <li><span>Phones</span>{{ audit.phones|join(', ') or "None found" }}</li>
+          <li><span>Tech</span>{{ audit.tech|join(', ') or "None detected" }}</li>
+          <li><span>Live chat</span>{{ "Yes" if audit.has_chat else "No" }}</li>
+          <li><span>Booking</span>{{ "Yes" if audit.has_booking else "No" }}</li>
+          <li><span>Socials</span>{{ audit.socials.keys()|join(', ') or "None found" }}</li>
+        </ul>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>Log activity</h2></div></div>
+      <form method="post" action="{{ url_for('lead_activity', lead_id=lead.id) }}">
+        <div class="form-grid">
+          <label class="field"><span>Type</span>
+            <select name="kind">
+              <option value="note">Note</option>
+              <option value="email">Email sent</option>
+              <option value="dm">DM sent</option>
+              <option value="call">Call</option>
+              <option value="meeting">Meeting</option>
+            </select>
+          </label>
+          <label class="field"><span>Channel</span><input name="channel" placeholder="email / facebook / phone" /></label>
+        </div>
+        <label class="field"><span>Details</span><textarea name="content" rows="3" required placeholder="What happened?"></textarea></label>
+        <label class="check"><input type="checkbox" name="mark_contacted" value="1" /> Mark lead as contacted</label>
+        <button class="btn btn-primary full" type="submit">Log activity</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <details>
+        <summary><strong>Edit lead details</strong></summary>
+        <form class="stack-form" method="post" action="{{ url_for('lead_update', lead_id=lead.id) }}">
+          <label class="field"><span>Name</span><input name="name" value="{{ lead.name }}" /></label>
+          <label class="field"><span>Company</span><input name="company" value="{{ lead.company }}" /></label>
+          <label class="field"><span>Email</span><input name="email" value="{{ lead.email }}" /></label>
+          <label class="field"><span>Phone</span><input name="phone" value="{{ lead.phone }}" /></label>
+          <label class="field"><span>Website</span><input name="website" value="{{ lead.website }}" /></label>
+          <label class="field"><span>Location</span><input name="location" value="{{ lead.location }}" /></label>
+          <label class="field"><span>Category</span><input name="category" value="{{ lead.category }}" /></label>
+          <label class="field"><span>Notes</span><textarea name="notes" rows="4">{{ lead.notes }}</textarea></label>
+          <button class="btn btn-primary full" type="submit">Save changes</button>
+        </form>
+      </details>
+    </section>
+
+    <section class="panel danger-panel">
+      <form method="post" action="{{ url_for('lead_delete', lead_id=lead.id) }}" data-confirm="Delete this lead and all its activity?">
+        <button class="btn btn-danger full" type="submit">Delete lead</button>
+      </form>
+    </section>
+  </aside>
+</div>
+{% endblock %}

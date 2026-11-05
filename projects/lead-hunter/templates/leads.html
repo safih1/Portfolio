@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Leads · Lead Hunter{% endblock %}
+{% block page_title %}Leads{% endblock %}
+{% block page_sub %}{{ total }} lead{{ '' if total == 1 else 's' }} in the workspace.{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('export_csv') }}">Export</a>
+  <a class="btn btn-primary" href="{{ url_for('dashboard') }}#quick-add">+ Add lead</a>
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <form class="filter-bar" method="get" action="{{ url_for('leads') }}">
+    <label class="field grow">
+      <span>Search</span>
+      <input name="q" value="{{ query }}" placeholder="Name, company, email, phone, notes…" />
+    </label>
+    <label class="field">
+      <span>Status</span>
+      <select name="status">
+        <option value="">All</option>
+        {% for item in statuses %}
+          <option value="{{ item }}" {{ 'selected' if status == item }}>{{ item }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="field">
+      <span>Platform</span>
+      <select name="platform">
+        <option value="">All</option>
+        {% for item in platforms %}
+          <option value="{{ item }}" {{ 'selected' if platform == item }}>{{ item }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="filter-actions">
+      <button class="btn btn-primary" type="submit">Filter</button>
+      <a class="btn btn-ghost" href="{{ url_for('leads') }}">Reset</a>
+    </div>
+  </form>
+</section>
+
+<section class="panel">
+  {% if leads %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Lead</th>
+            <th>Contact</th>
+            <th>Platform</th>
+            <th>Location</th>
+            <th>Score</th>
+            <th>Status</th>
+            <th>Updated</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lead in leads %}
+            <tr>
+              <td>
+                <a class="lead-name" href="{{ url_for('lead_detail', lead_id=lead.id) }}">{{ lead.name }}</a>
+                <span class="muted block">{{ lead.company or lead.category or "—" }}</span>
+              </td>
+              <td>
+                <span class="block">{{ lead.email or "—" }}</span>
+                <span class="muted">{{ lead.phone or "" }}</span>
+              </td>
+              <td><span class="badge platform">{{ lead.platform }}</span></td>
+              <td class="muted">{{ lead.location or "—" }}</td>
+              <td>
+                {% if lead.score is not none %}
+                  <span class="score {{ lead.score|score_class }}">{{ lead.score }}</span>
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+              <td><span class="badge status-{{ lead.status }}">{{ lead.status }}</span></td>
+              <td class="muted">{{ lead.updated_at|timeago }}</td>
+              <td><a class="link" href="{{ url_for('lead_detail', lead_id=lead.id) }}">Open</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if pages > 1 %}
+      <div class="pagination">
+        {% if page > 1 %}
+          <a class="btn btn-ghost" href="{{ url_for('leads', q=query, status=status, platform=platform, page=page-1) }}">← Previous</a>
+        {% endif %}
+        <span class="muted">Page {{ page }} of {{ pages }}</span>
+        {% if page < pages %}
+          <a class="btn btn-ghost" href="{{ url_for('leads', q=query, status=status, platform=platform, page=page+1) }}">Next →</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-glyph">◎</div>
+      <h2>No leads match</h2>
+      <p>Try a different filter, import a CSV, or pull businesses from Google Places.</p>
+      <div class="empty-actions">
+        <a class="btn btn-primary" href="{{ url_for('tools') }}">Find leads</a>
+        <a class="btn btn-ghost" href="{{ url_for('leads') }}">Clear filters</a>
+      </div>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Lead Hunter{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_sub %}Find leads, qualify them, and keep every follow-up in one place.{% endblock %}
+{% block actions %}
+  <a class="btn btn-ghost" href="{{ url_for('tools') }}">Find leads</a>
+  <a class="btn btn-primary" href="#quick-add">+ Add lead</a>
+{% endblock %}
+
+{% block content %}
+<section class="stat-grid">
+  <div class="stat-card">
+    <span class="stat-label">Total leads</span>
+    <strong class="stat-value">{{ stats.total }}</strong>
+    <span class="stat-note">{{ stats.new_this_week }} added this week</span>
+  </div>
+  <div class="stat-card accent">
+    <span class="stat-label">Hot leads</span>
+    <strong class="stat-value">{{ stats.hot }}</strong>
+    <span class="stat-note">Score 70+</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Needs follow-up</span>
+    <strong class="stat-value">{{ stats.needs_followup }}</strong>
+    <span class="stat-note">Contacted 3+ days ago</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Average score</span>
+    <strong class="stat-value">{{ stats.avg_score if stats.avg_score is not none else "—" }}</strong>
+    <span class="stat-note">AI qualification</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Pipeline</span>
+    <strong class="stat-value">{{ stats.by_status.qualified + stats.by_status.won }}</strong>
+    <span class="stat-note">{{ stats.by_status.contacted }} contacted · {{ stats.by_status.replied }} replied</span>
+  </div>
+</section>
+
+<div class="layout-2">
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Hot leads</h2>
+          <p>Best-fit leads, ranked by score.</p>
+        </div>
+        <a class="link" href="{{ url_for('leads', status='') }}">View all</a>
+      </div>
+      {% if hot_leads %}
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Lead</th><th>Contact</th><th>Platform</th><th>Score</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {% for lead in hot_leads %}
+                <tr>
+                  <td>
+                    <a class="lead-name" href="{{ url_for('lead_detail', lead_id=lead.id) }}">{{ lead.name }}</a>
+                    <span class="muted block">{{ lead.company or lead.category or "—" }}</span>
+                  </td>
+                  <td>
+                    <span class="block">{{ lead.email or "—" }}</span>
+                    <span class="muted">{{ lead.phone or "" }}</span>
+                  </td>
+                  <td><span class="badge platform">{{ lead.platform }}</span></td>
+                  <td><span class="score {{ lead.score|score_class }}">{{ lead.score }}</span></td>
+                  <td><span class="badge status-{{ lead.status }}">{{ lead.status }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-inline">
+          <p>No scored leads yet.</p>
+          <p class="muted">Find leads or add one, then run AI scoring on the lead page.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Recent activity</h2>
+          <p>Latest leads added or updated.</p>
+        </div>
+      </div>
+      {% if recent %}
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Lead</th><th>Platform</th><th>Status</th><th>Updated</th></tr>
+            </thead>
+            <tbody>
+              {% for lead in recent %}
+                <tr>
+                  <td>
+                    <a class="lead-name" href="{{ url_for('lead_detail', lead_id=lead.id) }}">{{ lead.name }}</a>
+                    <span class="muted block">{{ lead.company or "—" }}</span>
+                  </td>
+                  <td><span class="badge platform">{{ lead.platform }}</span></td>
+                  <td><span class="badge status-{{ lead.status }}">{{ lead.status }}</span></td>
+                  <td class="muted">{{ lead.updated_at|timeago }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-inline">
+          <p>No leads yet.</p>
+          <p class="muted">Import a CSV or pull local businesses from Google Places to get started.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="panel" id="quick-add">
+      <div class="panel-head">
+        <div>
+          <h2>Add a lead</h2>
+          <p>Manual entry. Duplicates are merged automatically.</p>
+        </div>
+      </div>
+      <form class="form-grid" method="post" action="{{ url_for('lead_create') }}">
+        <label class="field"><span>Name *</span><input name="name" required placeholder="Dr. Amelia Hart" /></label>
+        <label class="field"><span>Company</span><input name="company" placeholder="Bright Smile Dental" /></label>
+        <label class="field"><span>Email</span><input name="email" type="email" placeholder="hello@business.com" /></label>
+        <label class="field"><span>Phone</span><input name="phone" placeholder="+1 512 555 0134" /></label>
+        <label class="field"><span>Website</span><input name="website" placeholder="https://business.com" /></label>
+        <label class="field"><span>Platform</span>
+          <select name="platform">
+            <option value="manual">Manual</option>
+            <option value="facebook">Facebook</option>
+            <option value="instagram">Instagram</option>
+            <option value="linkedin">LinkedIn</option>
+            <option value="google">Google</option>
+            <option value="referral">Referral</option>
+          </select>
+        </label>
+        <label class="field"><span>Location</span><input name="location" placeholder="Austin, TX" /></label>
+        <label class="field"><span>Category</span><input name="category" placeholder="dentist" /></label>
+        <label class="field span-2"><span>Notes</span><textarea name="notes" rows="3" placeholder="Anything useful: pain points, how you found them, best time to call…"></textarea></label>
+        <div class="form-actions span-2">
+          <button class="btn btn-primary" type="submit">Save lead</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="panel">
+      <div class="panel-head"><div><h2>Setup</h2><p>Connect the parts you need.</p></div></div>
+      <ul class="checklist">
+        <li class="{{ 'done' if ai_ready }}">
+          <span class="check">{{ '✓' if ai_ready else '·' }}</span>
+          <div><strong>Groq AI</strong><small>{{ 'Connected — scoring and outreach enabled.' if ai_ready else 'Add GROQ_API_KEY to .env.' }}</small></div>
+        </li>
+        <li class="{{ 'done' if google_ready }}">
+          <span class="check">{{ '✓' if google_ready else '·' }}</span>
+          <div><strong>Google Places</strong><small>{{ 'Connected.' if google_ready else 'Add GOOGLE_PLACES_API_KEY to search local businesses.' }}</small></div>
+        </li>
+        <li class="{{ 'done' if facebook_ready }}">
+          <span class="check">{{ '✓' if facebook_ready else '·' }}</span>
+          <div><strong>Facebook Lead Ads</strong><small>{{ 'Connected.' if facebook_ready else 'Add a Page access token to pull lead forms.' }}</small></div>
+        </li>
+        <li class="{{ 'done' if stats.total }}">
+          <span class="check">{{ '✓' if stats.total else '·' }}</span>
+          <div><strong>First leads</strong><small>{{ 'Pipeline started.' if stats.total else 'Import a CSV or add a lead.' }}</small></div>
+        </li>
+      </ul>
+      <a class="btn btn-ghost full" href="{{ url_for('tools') }}">Open setup &amp; tools</a>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>Follow-up queue</h2><p>Contacted, no reply yet.</p></div></div>
+      {% if followups %}
+        <ul class="mini-list">
+          {% for lead in followups %}
+            <li>
+              <a href="{{ url_for('lead_detail', lead_id=lead.id) }}">{{ lead.name }}</a>
+              <span class="muted">{{ lead.updated_at|timeago }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted small">Nothing waiting. Good place to be.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>Pipeline by status</h2></div></div>
+      <ul class="status-list">
+        {% for status, count in stats.by_status.items() %}
+          <li>
+            <span class="badge status-{{ status }}">{{ status }}</span>
+            <strong>{{ count }}</strong>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  </aside>
+</div>
+{% endblock %}

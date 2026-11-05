@@ -1,0 +1,303 @@
+{
+  "name": "Lead Capture & CRM Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - New Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "lead-capture-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-email",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "validate-lead",
+      "name": "Validate Lead Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_URL",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Name": "={{ $json.name }}",
+            "Email": "={{ $json.email }}",
+            "Phone": "={{ $json.phone }}",
+            "Company": "={{ $json.company }}",
+            "Source": "={{ $json.source || 'Website' }}",
+            "Date": "={{ $now.format('yyyy-MM-dd HH:mm') }}",
+            "Status": "New"
+          }
+        },
+        "options": {}
+      },
+      "id": "save-to-sheets",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.2,
+      "position": [
+        690,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "contact",
+        "operation": "create",
+        "email": "={{ $json.email }}",
+        "additionalFields": {
+          "firstName": "={{ $json.name.split(' ')[0] }}",
+          "lastName": "={{ $json.name.split(' ').slice(1).join(' ') }}",
+          "phone": "={{ $json.phone }}",
+          "company": "={{ $json.company }}"
+        }
+      },
+      "id": "create-hubspot-contact",
+      "name": "Create HubSpot Contact",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [
+        690,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "notifications@yourbusiness.com",
+        "toEmail": "sales@yourbusiness.com",
+        "subject": "=🔥 New Lead: {{ $json.name }} from {{ $json.company }}",
+        "emailType": "html",
+        "html": "=<h2>New Lead Captured!</h2>\n<table style=\"border-collapse: collapse; width: 100%;\">\n<tr><td style=\"padding: 10px; border: 1px solid #ddd;\"><strong>Name:</strong></td><td style=\"padding: 10px; border: 1px solid #ddd;\">{{ $json.name }}</td></tr>\n<tr><td style=\"padding: 10px; border: 1px solid #ddd;\"><strong>Email:</strong></td><td style=\"padding: 10px; border: 1px solid #ddd;\">{{ $json.email }}</td></tr>\n<tr><td style=\"padding: 10px; border: 1px solid #ddd;\"><strong>Phone:</strong></td><td style=\"padding: 10px; border: 1px solid #ddd;\">{{ $json.phone }}</td></tr>\n<tr><td style=\"padding: 10px; border: 1px solid #ddd;\"><strong>Company:</strong></td><td style=\"padding: 10px; border: 1px solid #ddd;\">{{ $json.company }}</td></tr>\n<tr><td style=\"padding: 10px; border: 1px solid #ddd;\"><strong>Source:</strong></td><td style=\"padding: 10px; border: 1px solid #ddd;\">{{ $json.source || 'Website' }}</td></tr>\n</table>\n<p><a href=\"https://app.hubspot.com/contacts\" style=\"background: #0066ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;\">View in HubSpot</a></p>",
+        "options": {}
+      },
+      "id": "send-email-notification",
+      "name": "Email Sales Team",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        910,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "channel": "#sales-leads",
+        "text": "=:fire: *New Lead Captured!*\n\n*Name:* {{ $json.name }}\n*Email:* {{ $json.email }}\n*Phone:* {{ $json.phone }}\n*Company:* {{ $json.company }}\n*Source:* {{ $json.source || 'Website' }}\n\n<https://app.hubspot.com/contacts|View in HubSpot>",
+        "otherOptions": {}
+      },
+      "id": "slack-notification",
+      "name": "Notify Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [
+        910,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "hello@yourbusiness.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Thanks for reaching out, {{ $json.name.split(' ')[0] }}!",
+        "emailType": "html",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<h2 style=\"color: #0066ff;\">Thanks for getting in touch!</h2>\n<p>Hi {{ $json.name.split(' ')[0] }},</p>\n<p>We've received your inquiry and our team will get back to you within 24 hours.</p>\n<p>In the meantime, feel free to:</p>\n<ul>\n<li><a href=\"https://calendly.com/yourbusiness/meeting\">Book a call directly</a></li>\n<li><a href=\"https://yourbusiness.com/case-studies\">Check out our case studies</a></li>\n</ul>\n<p>Best regards,<br>The Team</p>\n</div>",
+        "options": {}
+      },
+      "id": "send-welcome-email",
+      "name": "Send Welcome Email to Lead",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1130,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"message\": \"Lead captured successfully\"}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1350,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": false, \"message\": \"Invalid data - email required\"}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        690,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - New Lead": {
+      "main": [
+        [
+          {
+            "node": "Validate Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create HubSpot Contact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Email Sales Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create HubSpot Contact": {
+      "main": [
+        [
+          {
+            "node": "Notify Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Sales Team": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Email to Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Slack": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Email to Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome Email to Lead": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "Lead Generation"
+    },
+    {
+      "name": "CRM"
+    },
+    {
+      "name": "Automation"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-02-02T12:00:00.000Z",
+  "versionId": "1"
+}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Find & import · Lead Hunter{% endblock %}
+{% block page_title %}Find &amp; import{% endblock %}
+{% block page_sub %}Pull leads from official APIs or your own exports.{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="panel-head">
+    <div><h2>Connection status</h2><p>Only the sources you configure are used.</p></div>
+  </div>
+  <ul class="checklist horizontal">
+    <li class="{{ 'done' if ai_ready }}"><span class="check">{{ '✓' if ai_ready else '·' }}</span><div><strong>Groq</strong><small>{{ groq_model if ai_ready else 'GROQ_API_KEY missing' }}</small></div></li>
+    <li class="{{ 'done' if google_ready }}"><span class="check">{{ '✓' if google_ready else '·' }}</span><div><strong>Google Places</strong><small>{{ 'Ready' if google_ready else 'GOOGLE_PLACES_API_KEY missing' }}</small></div></li>
+    <li class="{{ 'done' if facebook_ready }}"><span class="check">{{ '✓' if facebook_ready else '·' }}</span><div><strong>Facebook Lead Ads</strong><small>{{ 'Ready' if facebook_ready else 'FACEBOOK_PAGE_ACCESS_TOKEN missing' }}</small></div></li>
+  </ul>
+</section>
+
+<div class="layout-2">
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2>Google Places</h2><p>Find local businesses by category and city. Uses the official Places API.</p></div>
+        <span class="badge {{ 'ai-on' if google_ready else 'ai-off' }}">{{ 'Ready' if google_ready else 'Needs key' }}</span>
+      </div>
+      <form class="form-grid" method="post" action="{{ url_for('tools_google') }}">
+        <label class="field"><span>Category / query *</span><input name="query" required placeholder="dentist" /></label>
+        <label class="field"><span>Location</span><input name="location" placeholder="Austin, TX" /></label>
+        <label class="field"><span>Limit</span><input name="limit" type="number" min="1" max="60" value="20" /></label>
+        <label class="check align-end"><input type="checkbox" name="enrich" value="1" /> Audit each website for email + gaps</label>
+        <div class="form-actions span-2">
+          <button class="btn btn-primary" type="submit" {{ 'disabled' if not google_ready }}>Search &amp; import</button>
+          {% if not google_ready %}<span class="muted small">Add GOOGLE_PLACES_API_KEY to .env</span>{% endif %}
+        </div>
+      </form>
+      <p class="muted small">Enrichment visits each site and looks for email addresses, social links, live chat, and booking tools. It is slower but produces better leads.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2>Facebook Lead Ads</h2><p>Pull leads from a lead form you own. Official Graph API only.</p></div>
+        <span class="badge {{ 'ai-on' if facebook_ready else 'ai-off' }}">{{ 'Ready' if facebook_ready else 'Needs token' }}</span>
+      </div>
+      <form class="form-grid" method="post" action="{{ url_for('tools_facebook') }}">
+        <label class="field"><span>Lead form ID *</span><input name="form_id" required placeholder="123456789012345" /></label>
+        <label class="field"><span>Limit</span><input name="limit" type="number" min="1" max="500" value="100" /></label>
+        <div class="form-actions span-2">
+          <button class="btn btn-primary" type="submit" {{ 'disabled' if not facebook_ready }}>Pull form leads</button>
+        </div>
+      </form>
+
+      <details class="help">
+        <summary>How to get the token and form ID</summary>
+        <ol>
+          <li>Create an app at <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">developers.facebook.com</a>.</li>
+          <li>Add your Page and request <code>leads_retrieval</code> and <code>pages_read_engagement</code>.</li>
+          <li>Generate a Page access token and save it as <code>FACEBOOK_PAGE_ACCESS_TOKEN</code> in <code>.env</code>.</li>
+          <li>Set <code>FACEBOOK_PAGE_ID</code>. Open your lead forms in Meta Ads Manager to copy the form ID.</li>
+          <li>Optional real-time: set the webhook callback to <code>{{ url_for('facebook_webhook', _external=True) }}</code>, use <code>FACEBOOK_VERIFY_TOKEN</code>, and subscribe to the Page's <code>leadgen</code> field.</li>
+        </ol>
+      </details>
+
+      <p class="muted small">This tool does not scrape Facebook or send automated DMs. Import an export you are allowed to use, or pull leads from forms you own.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2>Import a CSV</h2><p>Facebook exports, LinkedIn exports, Apollo, spreadsheets — any file with headers.</p></div>
+      </div>
+      <form class="upload-form" method="post" action="{{ url_for('tools_import') }}" enctype="multipart/form-data">
+        <label class="dropzone">
+          <input type="file" name="file" accept=".csv,text/csv" required />
+          <span class="dropzone-title">Choose a CSV file</span>
+          <span class="muted small">Up to 8 MB. Name, company, email, phone, website, location, category, notes, and platform are detected automatically.</span>
+        </label>
+        <button class="btn btn-primary" type="submit">Import leads</button>
+      </form>
+    </section>
+  </div>
+
+  <aside class="stack">
+    <section class="panel">
+      <div class="panel-head"><div><h2>Supported CSV headers</h2></div></div>
+      <ul class="detail-list compact">
+        <li><span>Name</span>name, full_name, contact_name</li>
+        <li><span>Company</span>company, business_name, organization</li>
+        <li><span>Email</span>email, email_address, work_email</li>
+        <li><span>Phone</span>phone, mobile, telephone, whatsapp</li>
+        <li><span>Website</span>website, domain, url</li>
+        <li><span>Location</span>location, city, address, country</li>
+        <li><span>Notes</span>notes, description, comments</li>
+      </ul>
+      <p class="muted small">Headers are matched case-insensitively. Extra columns are ignored.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>Other platforms</h2><p>Bring your own export.</p></div></div>
+      <ul class="plain-list">
+        <li><strong>Instagram / Threads</strong> — use Meta's export or a form you own.</li>
+        <li><strong>LinkedIn</strong> — export your connections or saved leads as CSV.</li>
+        <li><strong>X / TikTok / YouTube</strong> — collect usernames and profile URLs in a sheet, then import.</li>
+        <li><strong>Referrals</strong> — add manually from the dashboard.</li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>Demo data</h2><p>See how the workspace works.</p></div></div>
+      <form method="post" action="{{ url_for('tools_demo') }}">
+        <button class="btn btn-ghost full" type="submit">Load 3 demo leads</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>Compliance</h2></div></div>
+      <p class="muted small">Use official APIs or data you are allowed to process. Do not scrape logged-in pages, bypass rate limits, or send unsolicited DMs. Follow GDPR, CAN-SPAM, and Meta's platform terms. Keep a record of consent and an opt-out path.</p>
+    </section>
+  </aside>
+</div>
+{% endblock %}

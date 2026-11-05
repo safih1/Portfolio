@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Invoices · Client Portal{% endblock %}
+{% block eyebrow %}Invoices{% endblock %}
+{% block page_title %}Invoices{% endblock %}
+{% block actions %}
+  <a class="btn btn-primary" href="{% url 'portal:invoice_create' %}">+ New invoice</a>
+{% endblock %}
+
+{% block content %}
+<section class="stat-grid compact-grid">
+  <article class="stat-card accent">
+    <span class="stat-label">Outstanding</span>
+    <strong>${{ outstanding|floatformat:2 }}</strong>
+    <span class="stat-note">Sent or overdue</span>
+  </article>
+  <article class="stat-card">
+    <span class="stat-label">Paid</span>
+    <strong>${{ paid|floatformat:2 }}</strong>
+    <span class="stat-note">Collected</span>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="filter-row">
+    <a class="chip {% if not status %}active{% endif %}" href="{% url 'portal:invoice_list' %}">All</a>
+    <a class="chip {% if status == 'draft' %}active{% endif %}" href="{% url 'portal:invoice_list' %}?status=draft">Draft</a>
+    <a class="chip {% if status == 'sent' %}active{% endif %}" href="{% url 'portal:invoice_list' %}?status=sent">Sent</a>
+    <a class="chip {% if status == 'overdue' %}active{% endif %}" href="{% url 'portal:invoice_list' %}?status=overdue">Overdue</a>
+    <a class="chip {% if status == 'paid' %}active{% endif %}" href="{% url 'portal:invoice_list' %}?status=paid">Paid</a>
+  </div>
+
+  {% if invoices %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Invoice</th><th>Client</th><th>Project</th><th>Amount</th><th>Status</th><th>Issued</th><th>Due</th><th></th></tr></thead>
+        <tbody>
+          {% for invoice in invoices %}
+            <tr>
+              <td><strong>{{ invoice.number }}</strong></td>
+              <td><a href="{{ invoice.client.get_absolute_url }}">{{ invoice.client.name }}</a></td>
+              <td class="muted">{{ invoice.project.name|default:"—" }}</td>
+              <td>${{ invoice.amount|floatformat:2 }}</td>
+              <td><span class="pill {{ invoice.status_tone }}">{{ invoice.display_status|title }}</span></td>
+              <td class="muted">{{ invoice.issued_on|date:"M j, Y" }}</td>
+              <td>
+                {{ invoice.due_on|date:"M j, Y" }}
+                {% if invoice.is_overdue %}<span class="pill danger">Late</span>{% endif %}
+              </td>
+              <td class="table-actions">
+                {% if invoice.status != "paid" %}
+                  <form method="post" action="{% url 'portal:invoice_mark_paid' invoice.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                    <button class="btn btn-ghost small-btn" type="submit">Mark paid</button>
+                  </form>
+                {% else %}
+                  <span class="muted small">{{ invoice.paid_on|date:"M j" }}</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty">
+      <strong>No invoices</strong>
+      <p>{% if status %}No invoices match this filter.{% else %}Create an invoice to start tracking payments.{% endif %}</p>
+      <a class="btn btn-primary" href="{% url 'portal:invoice_create' %}">New invoice</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

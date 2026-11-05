@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Not found · Lead Hunter{% endblock %}
+{% block page_title %}Not found{% endblock %}
+{% block page_sub %}That page or lead does not exist.{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="empty-state">
+    <div class="empty-glyph">404</div>
+    <h2>Nothing here</h2>
+    <p>The lead may have been deleted, or the link is wrong.</p>
+    <div class="empty-actions">
+      <a class="btn btn-primary" href="{{ url_for('dashboard') }}">Back to dashboard</a>
+      <a class="btn btn-ghost" href="{{ url_for('leads') }}">Browse leads</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

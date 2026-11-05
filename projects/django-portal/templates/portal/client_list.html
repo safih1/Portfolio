@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Clients · Client Portal{% endblock %}
+{% block eyebrow %}Clients{% endblock %}
+{% block page_title %}Clients{% endblock %}
+{% block actions %}
+  <a class="btn btn-primary" href="{% url 'portal:client_create' %}">+ New client</a>
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <form class="search-row" method="get" action="">
+    <input type="search" name="q" value="{{ search }}" placeholder="Search by name, company, or email…" aria-label="Search clients" />
+    <button class="btn" type="submit">Search</button>
+    {% if search %}<a class="btn btn-ghost" href="{% url 'portal:client_list' %}">Clear</a>{% endif %}
+  </form>
+
+  {% if clients %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Client</th><th>Company</th><th>Contact</th><th>Projects</th><th>Outstanding</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for client in clients %}
+            <tr>
+              <td>
+                <a href="{{ client.get_absolute_url }}"><strong>{{ client.name }}</strong></a>
+                <div class="muted small">Added {{ client.created_at|date:"M j, Y" }}</div>
+              </td>
+              <td class="muted">{{ client.company|default:"—" }}</td>
+              <td>
+                <a href="mailto:{{ client.email }}">{{ client.email }}</a>
+                {% if client.phone %}<div class="muted small">{{ client.phone }}</div>{% endif %}
+              </td>
+              <td><span class="count">{{ client.project_count }}</span></td>
+              <td>${{ client.outstanding|default:0|floatformat:2 }}</td>
+              <td class="table-actions">
+                <a class="btn btn-ghost small-btn" href="{{ client.get_absolute_url }}">Open</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty">
+      <strong>No clients found</strong>
+      <p>{% if search %}Try a different search term.{% else %}Add a client to start tracking projects and invoices.{% endif %}</p>
+      {% if not search %}<a class="btn btn-primary" href="{% url 'portal:client_create' %}">New client</a>{% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

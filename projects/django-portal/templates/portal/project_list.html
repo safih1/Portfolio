@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Projects · Client Portal{% endblock %}
+{% block eyebrow %}Projects{% endblock %}
+{% block page_title %}Projects{% endblock %}
+{% block actions %}
+  <a class="btn btn-primary" href="{% url 'portal:project_create' %}">+ New project</a>
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <div class="filter-row">
+    <a class="chip {% if not status %}active{% endif %}" href="{% url 'portal:project_list' %}">All <span>{{ total }}</span></a>
+    {% for value, label, count in statuses %}
+      <a class="chip {% if status == value %}active{% endif %}" href="{% url 'portal:project_list' %}?status={{ value }}">{{ label }} <span>{{ count }}</span></a>
+    {% endfor %}
+  </div>
+
+  {% if projects %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Project</th><th>Client</th><th>Status</th><th>Progress</th><th>Budget</th><th>Due</th></tr></thead>
+        <tbody>
+          {% for project in projects %}
+            <tr>
+              <td><a href="{{ project.get_absolute_url }}"><strong>{{ project.name }}</strong></a></td>
+              <td class="muted">{{ project.client }}</td>
+              <td><span class="pill {{ project.status_tone }}">{{ project.get_status_display }}</span></td>
+              <td>
+                <div class="progress-row">
+                  <div class="progress"><span style="width: {{ project.progress }}%"></span></div>
+                  <span class="muted small">{{ project.progress }}%</span>
+                </div>
+              </td>
+              <td>${{ project.budget|floatformat:2 }}</td>
+              <td>
+                {% if project.due_date %}
+                  {{ project.due_date|date:"M j, Y" }}
+                  {% if project.is_overdue %}<span class="pill danger">Overdue</span>{% endif %}
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty">
+      <strong>No projects here</strong>
+      <p>{% if status %}Try another status filter.{% else %}Create a project to start tracking delivery.{% endif %}</p>
+      <a class="btn btn-primary" href="{% url 'portal:project_create' %}">New project</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

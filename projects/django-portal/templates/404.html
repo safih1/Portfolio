@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Not found · Client Portal{% endblock %}
+{% block eyebrow %}404{% endblock %}
+{% block page_title %}Page not found{% endblock %}
+{% block content %}
+<section class="panel empty">
+  <strong>That page does not exist</strong>
+  <p>The client, project, or invoice may have been removed.</p>
+  <a class="btn btn-primary" href="{% url 'portal:dashboard' %}">Back to dashboard</a>
+</section>
+{% endblock %}

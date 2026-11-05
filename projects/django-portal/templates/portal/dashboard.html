@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · Client Portal{% endblock %}
+{% block eyebrow %}Overview{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block actions %}
+  <a class="btn btn-primary" href="{% url 'portal:project_create' %}">+ New project</a>
+{% endblock %}
+
+{% block content %}
+<section class="stat-grid">
+  <article class="stat-card">
+    <span class="stat-label">Clients</span>
+    <strong>{{ stats.clients }}</strong>
+    <span class="stat-note">Active relationships</span>
+  </article>
+  <article class="stat-card">
+    <span class="stat-label">Active projects</span>
+    <strong>{{ stats.active_projects }}</strong>
+    <span class="stat-note">In discovery, build, or review</span>
+  </article>
+  <article class="stat-card accent">
+    <span class="stat-label">Outstanding</span>
+    <strong>${{ stats.outstanding|floatformat:2 }}</strong>
+    <span class="stat-note">Sent or overdue invoices</span>
+  </article>
+  <article class="stat-card">
+    <span class="stat-label">Paid revenue</span>
+    <strong>${{ stats.paid|floatformat:2 }}</strong>
+    <span class="stat-note">All time</span>
+  </article>
+</section>
+
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Recent projects</h2>
+        <p>What has changed most recently.</p>
+      </div>
+      <a class="link" href="{% url 'portal:project_list' %}">View all</a>
+    </div>
+
+    {% if recent_projects %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Project</th><th>Client</th><th>Status</th><th>Progress</th></tr>
+          </thead>
+          <tbody>
+            {% for project in recent_projects %}
+              <tr>
+                <td><a href="{{ project.get_absolute_url }}">{{ project.name }}</a></td>
+                <td class="muted">{{ project.client }}</td>
+                <td><span class="pill {{ project.status_tone }}">{{ project.get_status_display }}</span></td>
+                <td>
+                  <div class="progress-row">
+                    <div class="progress"><span style="width: {{ project.progress }}%"></span></div>
+                    <span class="muted small">{{ project.progress }}%</span>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty">
+        <strong>No projects yet</strong>
+        <p>Create your first project to start tracking delivery.</p>
+        <a class="btn btn-primary" href="{% url 'portal:project_create' %}">New project</a>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Invoices due</h2>
+        <p>Unpaid invoices, soonest first.</p>
+      </div>
+      <a class="link" href="{% url 'portal:invoice_list' %}">View all</a>
+    </div>
+
+    {% if open_invoices %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Invoice</th><th>Client</th><th>Amount</th><th>Due</th></tr>
+          </thead>
+          <tbody>
+            {% for invoice in open_invoices %}
+              <tr>
+                <td><strong>{{ invoice.number }}</strong></td>
+                <td class="muted">{{ invoice.client }}</td>
+                <td>${{ invoice.amount|floatformat:2 }}</td>
+                <td>
+                  <span class="pill {{ invoice.status_tone }}">{{ invoice.display_status|title }}</span>
+                  <span class="muted small">{{ invoice.due_on|date:"M j" }}</span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty">
+        <strong>Nothing due</strong>
+        <p>All open invoices are cleared.</p>
+      </div>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel quick-actions">
+  <div>
+    <h2>Quick actions</h2>
+    <p class="muted small">Add records without leaving the dashboard.</p>
+  </div>
+  <div class="action-row">
+    <a class="btn" href="{% url 'portal:client_create' %}">New client</a>
+    <a class="btn" href="{% url 'portal:project_create' %}">New project</a>
+    <a class="btn" href="{% url 'portal:invoice_create' %}">New invoice</a>
+  </div>
+</section>
+{% endblock %}
