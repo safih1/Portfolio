@@ -74,6 +74,8 @@ Import the JSON files from `projects/n8n-workflows` into n8n: **Workflows → Im
 
 **Django portal:** the root [`render.yaml`](render.yaml) blueprint deploys `projects/django-portal` with Gunicorn and WhiteNoise.
 
+[Deploy the Django portal to Render](https://render.com/deploy?repo=https://github.com/safih1/Portfolio)
+
 1. In Render, choose **New → Blueprint**.
 2. Select this repository.
 3. Apply the blueprint and wait for the build.
